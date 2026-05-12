@@ -1,0 +1,12 @@
+fastapi>=0.100.0
+uvicorn>=0.23.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+sqlalchemy>=2.0.0
+trino>=0.325.0
+cryptography>=41.0.0
+redis>=5.0.0
+httpx>=0.25.0
+itsdangerous>=2.1.2
+# The official GitHub Copilot SDK is only available as a Node.js package (@github/copilot-sdk).
+# A minimal Node side‑car is provided in ./copilot_sidecar/.

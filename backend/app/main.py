@@ -1,0 +1,41 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from app.core.config import settings
+from app.api.routes import connections, metadata, auth
+from app.models.connection import Base
+from app.models.user import User  # Import User to ensure tables are created
+from app.db.database import engine
+from starlette.middleware.sessions import SessionMiddleware
+
+# Create tables if they don't exist
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+)
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[settings.FRONTEND_URL, "http://localhost:5173", "http://127.0.0.1:5173"], # Set origins for credentials
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.SECRET_KEY,
+    session_cookie="skyquery_session",
+    max_age=86400 * 7  # 7 days
+)
+
+# Include Routers
+app.include_router(connections.router, prefix=f"{settings.API_V1_STR}/connections", tags=["connections"])
+app.include_router(metadata.router, prefix=f"{settings.API_V1_STR}/metadata", tags=["metadata"])
+app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
+
+@app.get("/")
+def root():
+    return {"message": "Welcome to SkyQuery API"}
