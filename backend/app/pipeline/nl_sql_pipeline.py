@@ -32,7 +32,15 @@ class NLtoSQLPipeline:
 
         schema = load_schema()
         if schema is None:
-            raise RuntimeError("Schema metadata unavailable.")
+            if self.mock_mode:
+                schema = {
+                    "aviation.public.flight_ops": {
+                        "columns": ["delayed_flights", "flight_id", "airline", "origin", "destination", "status"],
+                        "description": "Mock table for flight operations"
+                    }
+                }
+            else:
+                raise RuntimeError("Schema metadata unavailable.")
 
         intent = await classify_intent(question, schema)
 
