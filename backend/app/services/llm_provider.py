@@ -1,55 +1,58 @@
-import os
-import httpx
-
-async def generate_with_openai(prompt: str) -> dict:
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        return {"success": False, "error_message": "OpenAI API key missing"}
-        
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers={"Authorization": f"Bearer {api_key}"},
-                json={
-                    "model": "gpt-4o",
-                    "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.1
-                },
-                timeout=30.0
-            )
-            response.raise_for_status()
-            data = response.json()
-            return {
-                "success": True,
-                "response_text": data["choices"][0]["message"]["content"],
-                "error_message": None
-            }
-        except Exception as e:
-            return {"success": False, "error_message": str(e)}
-
-
 async def generate_with_gemini(prompt: str) -> dict:
     api_key = os.getenv("GEMINI_API_KEY")
+
     if not api_key:
-        return {"success": False, "error_message": "Gemini API key missing"}
-        
+        return {
+            "success": False,
+            "error_message": "Gemini API key missing"
+        }
+
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(
                 f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}",
+                headers={
+                    "Content-Type": "application/json"
+                },
                 json={
-                    "contents": [{"parts": [{"text": prompt}]}],
-                    "generationConfig": {"temperature": 0.1}
+                    "contents": [
+                        {
+                            "parts": [
+                                {
+                                    "text": prompt
+                                }
+                            ]
+                        }
+                    ],
+                    "generationConfig": {
+                        "temperature": 0.1
+                    }
                 },
                 timeout=30.0
             )
+
             response.raise_for_status()
+
             data = response.json()
+
             return {
                 "success": True,
                 "response_text": data["candidates"][0]["content"]["parts"][0]["text"],
                 "error_message": None
             }
+
+        except httpx.HTTPStatusError as e:
+            print("==== GEMINI ERROR RESPONSE BODY ====")
+            print(e.response.text)
+            print("====================================")
+
+            return {
+                "success": False,
+                "error_message": f"Gemini HTTP {e.response.status_code}: {e.response.text}"
+            }
+
         except Exception as e:
-            return {"success": False, "error_message": str(e)}
+            return {
+                "success": False,
+                "error_message": str(e)
+            }
