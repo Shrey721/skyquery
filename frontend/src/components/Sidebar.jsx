@@ -3,7 +3,7 @@ import { FiMessageSquare, FiPlus, FiSettings, FiDatabase, FiChevronRight, FiChev
 import './Sidebar.css';
 import HistoryPanel from './HistoryPanel';
 
-export default function Sidebar({ schema, activeConnection, isLoading, user, onOpenSettings, onRefreshMetadata, onDisconnect, onLogout }) {
+export default function Sidebar({ schema, activeConnection, recentQueries, isLoading, user, onOpenSettings, onRefreshMetadata, onDisconnect, onLogout }) {
   const [expandedTables, setExpandedTables] = useState({});
 
   const toggleTable = (tableName) => {
@@ -25,7 +25,7 @@ export default function Sidebar({ schema, activeConnection, isLoading, user, onO
       </div>
 
       <div className="sidebar-content">
-        <HistoryPanel />
+        <HistoryPanel history={recentQueries} />
 
         {/* Schema section: only shown when connected with valid metadata */}
         {activeConnection && hasSchema && (

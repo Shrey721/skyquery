@@ -114,5 +114,12 @@ export const apiClient = {
         return fetchWithHandler(`${BASE_URL}/auth/logout`, {
             method: 'POST'
         });
+    },
+
+    query: async (params) => {
+        return fetchWithHandler(`http://localhost:8000/query`, {
+            method: 'POST',
+            body: JSON.stringify(params)
+        });
     }
 };

@@ -9,6 +9,7 @@ import './App.css';
 
 function App() {
   const [messages, setMessages] = useState([]);
+  const [recentQueries, setRecentQueries] = useState([]);
   const [showConnectionPanel, setShowConnectionPanel] = useState(false);
   const [activeConnection, setActiveConnection] = useState(null);
   const [schema, setSchema] = useState(null);
@@ -102,18 +103,51 @@ function App() {
     setSchema(null);
   };
 
-  const handleSendMessage = (text) => {
+  const handleSendMessage = async (text) => {
     // 1. Add user message
     const newMessages = [...messages, { role: 'user', content: text }];
     setMessages(newMessages);
 
-    // 2. Mock Assistant response
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        { role: 'assistant', content: `I'm a mock assistant! You asked: "${text}".\n\nI will soon connect to your Trino backend to query this data for you.` }
-      ]);
-    }, 1000);
+    // 2. Add loading state
+    const loadingMessageIdx = newMessages.length;
+    setMessages((prev) => [
+      ...prev,
+      { role: 'assistant', isLoading: true }
+    ]);
+
+    try {
+      const response = await apiClient.query({ question: text });
+      
+      setMessages((prev) => {
+        const updated = [...prev];
+        updated[loadingMessageIdx] = { 
+          role: 'assistant', 
+          content: response.summary,
+          sql: response.sql,
+          validation: response.validation,
+          selected_tables: response.selected_tables,
+          execution: response.execution,
+          isError: false
+        };
+        return updated;
+      });
+
+      setRecentQueries(prev => {
+        const title = text.length > 30 ? text.substring(0, 30) + '...' : text;
+        return [title, ...prev].slice(0, 10);
+      });
+
+    } catch (e) {
+      setMessages((prev) => {
+        const updated = [...prev];
+        updated[loadingMessageIdx] = { 
+          role: 'assistant', 
+          content: `Error: ${e.message}`,
+          isError: true
+        };
+        return updated;
+      });
+    }
   };
 
   const handleRefreshMetadata = async () => {
@@ -139,6 +173,7 @@ function App() {
       <Sidebar 
         schema={schema} 
         activeConnection={activeConnection}
+        recentQueries={recentQueries}
         isLoading={isLoadingConnection}
         user={user}
         onOpenSettings={() => setShowConnectionPanel(true)} 
@@ -151,6 +186,11 @@ function App() {
       />
       
       <main className="main-content">
+        <div className="top-navbar">
+          <div className="live-badge">
+            <span className="live-dot"></span> Live Trino Execution
+          </div>
+        </div>
         <ChatArea messages={messages} />
         <ChatInput onSendMessage={handleSendMessage} />
       </main>
