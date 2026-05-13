@@ -138,6 +138,7 @@ async def generate_sql(
         print("\n----- PROMPT SENT TO COPILOT -----")
         print(prompt[:3000])
         print("----- END PROMPT PREVIEW -----\n")
+        logger.info("=== FULL PROMPT SENT TO LLM ===\n%s\n===============================", prompt)
 
         resolved_token = (
             copilot_token
@@ -206,11 +207,14 @@ async def generate_sql(
         print("----- RAW LLM TEXT -----")
         print(response_text)
         print("----- END RAW LLM TEXT -----")
+        logger.info("=== RAW LLM RESPONSE BEFORE PARSING ===\n%s\n=======================================", response_text)
 
         generated = _extract_json_from_response(response_text)
 
         if "sql" not in generated:
             raise ValueError("LLM response JSON missing 'sql' key")
+
+        logger.info("=== PARSED SQL BEFORE VALIDATOR ===\n%s\n===================================", generated["sql"])
 
         print("✅ LLM GENERATED SQL SUCCESSFULLY")
         print("SQL:", generated["sql"])
@@ -220,6 +224,7 @@ async def generate_sql(
         return generated
 
     except Exception as e:
+        logger.error("=== FALLBACK LOGIC TRIGGERED ===\nReason: %s\n================================", repr(e))
         print("❌ USING FALLBACK SQL")
         print("FALLBACK REASON:", repr(e))
         print("=========================================\n")

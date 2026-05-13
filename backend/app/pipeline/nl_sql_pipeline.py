@@ -69,9 +69,11 @@ class NLtoSQLPipeline:
             validation = await validate_sql(sql, schema)
 
             if validation["valid"]:
+                logger.info("=== FINAL VALIDATED SQL ===\n%s\n===========================", sql)
                 break
 
             if attempt == 2:
+                logger.error("=== VALIDATION REPAIR FAILED AFTER 3 ATTEMPTS ===")
                 raise RuntimeError(
                     f"SQL validation failed after retries: {validation['errors']}"
                 )
