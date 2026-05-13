@@ -24,11 +24,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+is_production = "localhost" not in settings.FRONTEND_URL and "127.0.0.1" not in settings.FRONTEND_URL
+
 app.add_middleware(
     SessionMiddleware,
     secret_key=settings.SECRET_KEY,
     session_cookie="skyquery_session",
-    max_age=86400 * 7  # 7 days
+    max_age=86400 * 7,  # 7 days
+    same_site="none" if is_production else "lax",
+    https_only=is_production,
 )
 
 # Include Routers
