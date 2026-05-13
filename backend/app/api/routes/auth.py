@@ -119,7 +119,8 @@ async def github_callback(request: Request, code: str, db: Session = Depends(get
         request.session["session_id"] = session_id
         
         # Store token securely server-side in Redis tied to this session
-        redis_client.setex(f"skyquery:session_token:{session_id}", 86400 * 7, access_token)
+        # Store token securely server-side in Redis tied to this session using the required key format
+        redis_client.setex(f"copilot_token:{session_id}", 86400 * 7, access_token)
         
         # Redirect to frontend
         print(f"[Auth Callback] Creating session for user {user.username} and redirecting to {settings.FRONTEND_URL}/")
@@ -141,7 +142,7 @@ def get_current_user(request: Request, db: Session = Depends(get_db)):
 def logout(request: Request):
     session_id = request.session.get("session_id")
     if session_id:
-        redis_client.delete(f"skyquery:session_token:{session_id}")
+        redis_client.delete(f"copilot_token:{session_id}")
     request.session.clear()
     return {"message": "Logged out successfully"}
 
@@ -153,7 +154,7 @@ async def get_token_status(request: Request):
     if not user_id or not session_id:
         return {"authenticated": False, "token_exists": False, "github_api_success": False}
         
-    token = redis_client.get(f"skyquery:session_token:{session_id}")
+    token = redis_client.get(f"copilot_token:{session_id}")
     if not token:
         return {"authenticated": True, "token_exists": False, "github_api_success": False}
         
@@ -191,7 +192,7 @@ async def test_copilot_llm(req: CopilotTestRequest, request: Request):
             "safe_error_message": "Not authenticated"
         }
 
-    github_token = redis_client.get(f"skyquery:session_token:{session_id}")
+    github_token = redis_client.get(f"copilot_token:{session_id}")
 
     if not github_token:
         return {
@@ -225,6 +226,7 @@ async def test_copilot_llm(req: CopilotTestRequest, request: Request):
         }
 
     except Exception as e:
+        logger.error(f"Error testing copilot: {e}")
         return {
             "authenticated": True,
             "github_token_exists": True,
@@ -232,3 +234,30 @@ async def test_copilot_llm(req: CopilotTestRequest, request: Request):
             "response_text": None,
             "safe_error_message": str(e),
         }
+
+@router.get("/debug-token/{session_id}")
+async def debug_token(session_id: str):
+    """Return whether a Copilot token exists for the given session_id.
+
+    The actual token value is never returned.
+    """
+    exists = bool(redis_client.get(f"copilot_token:{session_id}"))
+    return {"session_id": session_id, "token_exists": exists}
+
+@router.get("/health")
+async def health_check():
+    return {"status": "ok"}
+
+@router.get("/debug-sessions")
+async def debug_sessions():
+    """List all session IDs that have a stored Copilot token.
+    Returns only session IDs and a boolean flag – never the token itself.
+    """
+    keys = redis_client.keys("copilot_token:*")
+    sessions = []
+    for key in keys:
+        key_str = key.decode() if isinstance(key, (bytes, bytearray)) else str(key)
+        parts = key_str.split(":", 1)
+        session_id = parts[1] if len(parts) > 1 else key_str
+        sessions.append({"session_id": session_id, "token_exists": True})
+    return {"sessions": sessions}

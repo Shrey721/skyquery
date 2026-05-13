@@ -35,6 +35,9 @@ app.add_middleware(
 app.include_router(connections.router, prefix=f"{settings.API_V1_STR}/connections", tags=["connections"])
 app.include_router(metadata.router, prefix=f"{settings.API_V1_STR}/metadata", tags=["metadata"])
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
+# Import and register the NL-to-SQL query endpoint
+from app.api.routes.query import router as query_router
+app.include_router(query_router, tags=["query"])
 
 @app.get("/")
 def root():
