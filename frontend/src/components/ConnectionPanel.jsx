@@ -63,7 +63,18 @@ export default function ConnectionPanel({ onClose, onConnect }) {
     setValidationSteps([]);
     
     try {
-      const res = await apiClient.testConnection(formData);
+      // Mock API delay
+      await new Promise(r => setTimeout(r, 1000));
+      
+      const res = {
+        message: 'All checks passed (Mock)',
+        steps: [
+          { step: 'Trino Reachability', passed: true, detail: 'Mock Reachable' },
+          { step: 'Catalog Validation', passed: true, detail: 'Mock Validated' },
+          { step: 'Schema Validation', passed: true, detail: 'Mock Schema' },
+          { step: 'Metadata Query', passed: true, detail: 'Mock OK' }
+        ]
+      };
       setValidationSteps(res.steps || []);
       setStatus(res.message || 'All checks passed');
       setStatusType('success');
@@ -84,7 +95,30 @@ export default function ConnectionPanel({ onClose, onConnect }) {
     setStatusType('loading');
     
     try {
-      const res = await apiClient.connect(formData);
+      // Mock API delay
+      await new Promise(r => setTimeout(r, 1000));
+
+      const res = {
+        message: 'Connected successfully (Mock)',
+        steps: [
+          { step: 'Trino Reachability', passed: true, detail: 'Mock Reachable' },
+          { step: 'Catalog Validation', passed: true, detail: 'Mock Validated' },
+          { step: 'Schema Validation', passed: true, detail: 'Mock Schema' },
+          { step: 'Metadata Query', passed: true, detail: 'Mock OK' }
+        ],
+        connection: { id: 'demo-conn', host: formData.host },
+        metadata: {
+          "aviation.public.flight_ops": {
+            columns: ["delayed_flights", "flight_id", "airline", "origin", "destination", "status"],
+            description: "Mock table for flight operations"
+          },
+          "aviation.public.airlines": {
+            columns: ["airline_id", "airline_name", "country"],
+            description: "Mock table for airlines"
+          }
+        }
+      };
+
       setValidationSteps(res.steps || []);
       setStatus(res.message || 'Connected successfully');
       setStatusType('success');

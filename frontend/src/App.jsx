@@ -14,91 +14,36 @@ function App() {
   const [activeConnection, setActiveConnection] = useState(null);
   const [schema, setSchema] = useState(null);
   const [isLoadingConnection, setIsLoadingConnection] = useState(true);
-  const [user, setUser] = useState(null);
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const [user, setUser] = useState({ id: 'demo-user', username: 'demo-user', avatar_url: 'https://github.com/github.png' });
+  const [isCheckingAuth, setIsCheckingAuth] = useState(false);
 
   useEffect(() => {
-    checkAuthStatus();
+    // Demo mode: skip auth and metadata loading, use mock data
+    setIsCheckingAuth(false);
+    setIsLoadingConnection(false);
+
+    // Provide an initial mock connection and schema for demo visual
+    setActiveConnection({ id: 'demo-conn', host: 'demo-cluster' });
+    setSchema({
+      "aviation.public.flight_ops": {
+        columns: ["delayed_flights", "flight_id", "airline", "origin", "destination", "status"],
+        description: "Mock table for flight operations"
+      },
+      "aviation.public.airlines": {
+        columns: ["airline_id", "airline_name", "country"],
+        description: "Mock table for airlines"
+      }
+    });
   }, []);
 
-  const checkAuthStatus = async () => {
-    setIsCheckingAuth(true);
-    try {
-      const currentUser = await apiClient.getCurrentUser();
-      if (currentUser) {
-        setUser(currentUser);
-        // Only check connection if authenticated
-        checkExistingConnection();
-      } else {
-        setUser(null);
-      }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      setUser(null);
-    } finally {
-      setIsCheckingAuth(false);
-    }
-  };
-
-  const checkExistingConnection = async () => {
-    setIsLoadingConnection(true);
-    try {
-      const conn = await apiClient.getActiveConnection();
-      if (conn) {
-        setActiveConnection(conn);
-        // Only load schema if there IS an active connection
-        await loadSchema();
-      } else {
-        // No active connection — don't show any metadata
-        setActiveConnection(null);
-        setSchema(null);
-        // Automatically prompt for connection if none exists
-        setShowConnectionPanel(true);
-      }
-    } catch (e) {
-      // Backend unreachable or error — don't show stale data
-      console.error('Failed to check active connection:', e);
-      setActiveConnection(null);
-      setSchema(null);
-    } finally {
-      setIsLoadingConnection(false);
-    }
-  };
-
-  const loadSchema = async () => {
-    try {
-      const meta = await apiClient.getMetadataSchema();
-      if (meta) {
-        setSchema(meta);
-      } else {
-        setSchema(null);
-      }
-    } catch (e) {
-      console.error('Failed to load schema:', e);
-      setSchema(null);
-    }
-  };
-
-  /**
-   * Called from ConnectionPanel after a successful /connect call.
-   * Receives { connection, metadata } from the combined endpoint.
-   */
   const handleConnect = ({ connection, metadata }) => {
-    setActiveConnection(connection);
-    if (metadata) {
-      setSchema(metadata);
-    }
+    // Mock connect behavior
+    setActiveConnection({ id: 'demo-conn', host: 'demo-cluster' });
+    setShowConnectionPanel(false);
   };
 
-  /**
-   * Disconnect: deactivate connection, clear metadata.
-   */
   const handleDisconnect = async () => {
-    try {
-      await apiClient.disconnect();
-    } catch (e) {
-      console.error('Disconnect failed:', e);
-    }
+    // Mock disconnect behavior
     setActiveConnection(null);
     setSchema(null);
   };
@@ -116,7 +61,27 @@ function App() {
     ]);
 
     try {
-      const response = await apiClient.query({ question: text });
+      // Demo Mode: Mock API query delay and response
+      await new Promise(r => setTimeout(r, 1500));
+      
+      const response = {
+        summary: "This is a mock UI demo response. Here is the data based on your query.",
+        sql: "SELECT * FROM aviation.public.flight_ops\nLIMIT 10;",
+        validation: { valid: true },
+        selected_tables: ["aviation.public.flight_ops"],
+        execution: {
+          rows: [
+            { id: 1, flight_no: "AA123", status: "Delayed", origin: "JFK", dest: "LAX" },
+            { id: 2, flight_no: "DL456", status: "On Time", origin: "ATL", dest: "ORD" },
+            { id: 3, flight_no: "UA789", status: "Delayed", origin: "SFO", dest: "EWR" },
+            { id: 4, flight_no: "SW321", status: "On Time", origin: "DAL", dest: "HOU" }
+          ],
+          preview: [
+            { id: 1, flight_no: "AA123", status: "Delayed", origin: "JFK", dest: "LAX" },
+            { id: 2, flight_no: "DL456", status: "On Time", origin: "ATL", dest: "ORD" }
+          ]
+        }
+      };
       
       setMessages((prev) => {
         const updated = [...prev];
@@ -152,12 +117,8 @@ function App() {
 
   const handleRefreshMetadata = async () => {
     if (!activeConnection) return;
-    try {
-      await apiClient.discoverMetadata();
-      await loadSchema();
-    } catch (e) {
-      console.error('Metadata refresh failed:', e);
-    }
+    // Mock refresh delay
+    await new Promise(r => setTimeout(r, 500));
   };
 
   if (isCheckingAuth) {
@@ -180,7 +141,7 @@ function App() {
         onRefreshMetadata={handleRefreshMetadata}
         onDisconnect={handleDisconnect}
         onLogout={async () => {
-          await apiClient.logout();
+          // Mock logout
           setUser(null);
         }}
       />
