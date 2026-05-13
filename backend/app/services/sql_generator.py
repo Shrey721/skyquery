@@ -145,17 +145,54 @@ async def generate_sql(
             or os.getenv("GITHUB_COPILOT_TOKEN", "")
         )
 
+        llm_provider = os.getenv("LLM_PROVIDER", "").lower()
+        openai_key = os.getenv("OPENAI_API_KEY")
+        gemini_key = os.getenv("GEMINI_API_KEY")
+
         print("SQL GENERATOR RECEIVED TOKEN:", bool(copilot_token))
-        print("ENV TOKEN EXISTS:", bool(os.getenv("GITHUB_COPILOT_TOKEN", "")))
         print("FINAL TOKEN EXISTS:", bool(resolved_token))
 
-        response = await get_copilot_chat_completion(
-            github_token=resolved_token,
-            model="gpt-4.1",
-            prompt=prompt
-        )
+        response = None
+        provider_used = None
 
-        print("----- RAW COPILOT SDK RESPONSE -----")
+        if llm_provider == "openai" and openai_key:
+            logger.info("Using OpenAI for SQL generation")
+            provider_used = "OpenAI"
+            from app.services.llm_provider import generate_with_openai
+            response = await generate_with_openai(prompt)
+        elif llm_provider == "gemini" and gemini_key:
+            logger.info("Using Gemini for SQL generation")
+            provider_used = "Gemini"
+            from app.services.llm_provider import generate_with_gemini
+            response = await generate_with_gemini(prompt)
+        elif resolved_token:
+            logger.info("Using GitHub Copilot for SQL generation")
+            provider_used = "GitHub Copilot"
+            response = await get_copilot_chat_completion(
+                github_token=resolved_token,
+                model="gpt-4.1",
+                prompt=prompt
+            )
+        else:
+            logger.info("No valid LLM provider found, simulating mock LLM response")
+            provider_used = "Mock"
+            mock_response_json = json.dumps({
+                "assumption": "Mock mode active without real LLM.",
+                "sql": f"SELECT 'MOCK_DATA' AS result_count FROM {table_name} LIMIT 10;",
+                "chart_type": "table",
+                "explanation": "This is a mocked SQL response due to missing LLM providers."
+            })
+            response = {
+                "success": True,
+                "response_text": mock_response_json,
+                "error_message": None
+            }
+
+        logger.info(f"[PIPELINE] SQL Generation is {'MOCK' if provider_used == 'Mock' else 'REAL'} (Provider: {provider_used})")
+        is_mock_exec = os.getenv("MOCK_EXECUTION", "false").lower() == "true"
+        logger.info(f"[PIPELINE] SQL Execution will be {'MOCK' if is_mock_exec else 'REAL'}")
+
+        print(f"----- RAW {provider_used} SDK RESPONSE -----")
         print(response)
         print("----- END RAW RESPONSE -----")
 

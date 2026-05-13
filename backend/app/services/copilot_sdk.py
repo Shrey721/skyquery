@@ -1,5 +1,4 @@
 import os
-import json
 
 MOCK_MODE = str(os.getenv("MOCK_EXECUTION", "false")).lower() == "true"
 
@@ -21,19 +20,6 @@ async def get_copilot_chat_completion(
     model: str,
     prompt: str,
 ) -> dict:
-    if MOCK_MODE:
-        mock_response = json.dumps({
-            "assumption": "Mock mode active.",
-            "sql": "SELECT 'MOCK_DATA' AS result_count FROM mock_table LIMIT 10;",
-            "chart_type": "table",
-            "explanation": "This is a mocked SQL response due to MOCK_EXECUTION=true."
-        })
-        return {
-            "success": True,
-            "response_text": mock_response,
-            "error_message": None,
-        }
-
     if CopilotClient is None or SubprocessConfig is None:
         return {
             "success": False,
