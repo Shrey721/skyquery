@@ -1,7 +1,7 @@
 import React from 'react';
 import './Login.css';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_API_URL;
 const GITHUB_LOGIN_URL = `${API_URL}/api/v1/auth/github/login`;
 
 const Login = () => {
