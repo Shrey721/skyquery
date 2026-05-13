@@ -2,7 +2,8 @@
  * API Client for SkyQuery Frontend
  */
 
-const BASE_URL = 'http://localhost:8000/api/v1';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const BASE_URL = `${API_URL}/api/v1`;
 
 async function fetchWithHandler(url, options = {}) {
     console.log(`[API Request] ${options.method || 'GET'} ${url}`, options.body ? JSON.parse(options.body) : '');
@@ -117,7 +118,7 @@ export const apiClient = {
     },
 
     query: async (params) => {
-        return fetchWithHandler(`http://localhost:8000/query`, {
+        return fetchWithHandler(`${API_URL}/query`, {
             method: 'POST',
             body: JSON.stringify(params)
         });
